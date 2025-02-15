@@ -2,9 +2,9 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "vocade",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.vocade.app",
   "build": {
-    "frontendDist": "../out",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
@@ -13,14 +13,21 @@
     "windows": [
       {
         "title": "vocade",
-        "width": 800,
-        "height": 600,
+        "width": 1200,
+        "height": 800,
         "resizable": true,
         "fullscreen": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": ["'self'"],
+        "img-src": ["'self'", "https://*", "data:"],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "connect-src": ["'self'", "https://*"],
+        "script-src": ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
+        "font-src": ["'self'", "data:", "https://*"]
+      }
     }
   },
   "bundle": {
@@ -33,5 +40,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["vocade"]
+      }
+    }
   }
 }
