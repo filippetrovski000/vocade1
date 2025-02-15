@@ -6,21 +6,8 @@ export default function AuthSuccess() {
   const [attempts, setAttempts] = useState(0);
 
   const openApp = () => {
-    // Get all URL parameters including the hash
-    const searchParams = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-
-    // Combine search and hash parameters
-    const allParams = new URLSearchParams();
-    for (const [key, value] of searchParams.entries()) {
-      allParams.append(key, value);
-    }
-    for (const [key, value] of hashParams.entries()) {
-      allParams.append(key, value);
-    }
-
-    // Create the deep link URL with all parameters
-    const deepLinkUrl = `vocade://auth/callback?${allParams.toString()}`;
+    const fullHash = window.location.hash;
+    const deepLinkUrl = `vocade://auth/callback${fullHash}`;
     console.log('Opening deep link:', deepLinkUrl);
     
     window.location.href = deepLinkUrl;
