@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 export default function AuthSuccess() {
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [redirectFailed, setRedirectFailed] = useState(false);
   const attemptRef = useRef(0);
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -21,8 +20,6 @@ export default function AuthSuccess() {
     // Create the deep link URL with the auth parameters
     const deepLinkUrl = `vocade://auth/callback${hash}`;
     console.log('Opening deep link:', deepLinkUrl);
-    
-    setIsRedirecting(true);
     
     // Focus existing window if possible
     if (window.opener) {
