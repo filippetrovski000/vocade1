@@ -45,17 +45,24 @@ export const useDeepLinkAuth = () => {
           if (data.session) {
             console.log('Session established, managing windows...');
             try {
-              // Get the current window
-              const currentWindow = new Window('main');
+              // Try to get the main window
+              const mainWindow = new Window('main');
+              console.log('Found main window, attempting to focus...');
+
+              // Focus the window and bring it to front
+              await mainWindow.setFocus();
+              await mainWindow.unminimize();
               
-              // Focus the window
-              await currentWindow.setFocus();
+              // Small delay to ensure window is ready
+              await new Promise(resolve => setTimeout(resolve, 100));
               
-              // Use the Tauri window API to navigate
-              await currentWindow.emit('navigate', { path: '/dashboard' });
+              // Navigate to dashboard
+              console.log('Navigating to dashboard...');
+              await mainWindow.emit('navigate', { path: '/dashboard' });
             } catch (err) {
               console.error('Error managing windows:', err);
               // If window management fails, try a fallback approach
+              console.log('Falling back to browser navigation...');
               window.location.href = '/dashboard';
             }
           }
