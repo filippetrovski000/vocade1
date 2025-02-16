@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import supabase from '@/lib/utils/supabase';
 import { useDeepLinkAuth } from '@/hooks/useDeepLinkAuth';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { useRouter } from 'next/navigation';
 
 declare global {
   interface Window {
@@ -15,9 +16,22 @@ declare global {
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
   
   // Initialize deep link listener
   useDeepLinkAuth();
+
+  // Check if already authenticated
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push('/dashboard');
+      }
+    };
+    
+    checkSession();
+  }, [router]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -40,7 +54,7 @@ export default function LoginPage() {
 
       if (!data?.url) throw new Error('No auth URL returned');
       
-      // Always use the system browser in Tauri
+      console.log('Opening auth URL in browser:', data.url);
       await openUrl(data.url);
     } catch (err) {
       setError('Failed to login with Google. Please try again.');

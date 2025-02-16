@@ -6,9 +6,22 @@ export default function AuthSuccess() {
   const [attempts, setAttempts] = useState(0);
 
   const openApp = () => {
-    const fullHash = window.location.hash;
-    // Use the vocade:// scheme for deep linking
-    const deepLinkUrl = `vocade://auth/callback${fullHash}`;
+    // Get both hash and search parameters
+    const hash = window.location.hash;
+    const search = window.location.search;
+    
+    // Combine them for the deep link
+    let params = '';
+    if (hash && hash.startsWith('#')) {
+      params = hash.substring(1); // Remove the # symbol
+    } else if (search && search.startsWith('?')) {
+      params = search.substring(1); // Remove the ? symbol
+    }
+    
+    console.log('Auth params:', params);
+    
+    // Create the deep link URL with the auth parameters
+    const deepLinkUrl = `vocade://auth/callback?${params}`;
     console.log('Opening deep link:', deepLinkUrl);
     
     window.location.href = deepLinkUrl;
