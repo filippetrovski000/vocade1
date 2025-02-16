@@ -18,7 +18,8 @@ export default function AuthSuccess() {
     }
 
     // Create the deep link URL with the auth parameters
-    const deepLinkUrl = `vocade://auth/callback${hash}`;
+    // Use encodeURIComponent to handle special characters
+    const deepLinkUrl = `vocade://auth/callback${encodeURIComponent(hash)}`;
     console.log('Opening deep link:', deepLinkUrl);
     
     // Focus existing window if possible
@@ -42,7 +43,7 @@ export default function AuthSuccess() {
       timeoutRef.current = setTimeout(() => {
         // If we're still here after a delay, the deep link probably failed
         setRedirectFailed(true);
-      }, 1000);
+      }, 2000); // Increased timeout to 2 seconds
     } catch (err) {
       console.error('Failed to open deep link:', err);
       setRedirectFailed(true);

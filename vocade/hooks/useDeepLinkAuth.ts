@@ -20,7 +20,9 @@ export const useDeepLinkAuth = () => {
         console.log('URL object:', urlObj);
         
         // Get hash parameters (remove the leading #)
-        const hashParams = new URLSearchParams(urlObj.hash.substring(1));
+        // Decode the hash first as it was encoded in the auth success page
+        const decodedHash = decodeURIComponent(urlObj.hash);
+        const hashParams = new URLSearchParams(decodedHash.substring(1));
         console.log('Hash params:', Object.fromEntries(hashParams));
 
         const accessToken = hashParams.get('access_token');
@@ -54,6 +56,9 @@ export const useDeepLinkAuth = () => {
               await mainWindow.setFocus();
               await mainWindow.unminimize();
               
+              // Small delay to ensure window is ready
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
               // Navigate to dashboard
               console.log('Navigating to dashboard...');
               router.push('/dashboard');
@@ -74,6 +79,11 @@ export const useDeepLinkAuth = () => {
     };
 
     console.log('Setting up deep link listener...');
-    onOpenUrl(handleUrl);
+    const unlisten = onOpenUrl(handleUrl);
+
+    // Cleanup function
+    return () => {
+      unlisten.then(fn => fn()).catch(console.error);
+    };
   }, [router]);
 }; 
