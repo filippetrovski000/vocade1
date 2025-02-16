@@ -39,9 +39,12 @@ export const useDeepLinkAuth = () => {
             throw error;
           }
           
+          console.log('Session data:', data);
+          
           if (data.session) {
             console.log('Session established, redirecting to dashboard...');
-            router.push('/dashboard');
+            // Force a page reload to ensure the session is properly initialized
+            window.location.href = '/dashboard';
           }
         } else {
           throw new Error('Missing required tokens in URL');

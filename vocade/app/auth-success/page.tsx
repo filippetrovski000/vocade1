@@ -27,7 +27,7 @@ export default function AuthSuccess() {
     }
 
     // Create the deep link URL with the auth parameters
-    const deepLinkUrl = `vocade://auth/callback#access_token=${accessToken}&refresh_token=${refreshToken}`;
+    const deepLinkUrl = `vocade://auth/callback#access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`;
     console.log('Opening deep link:', deepLinkUrl);
     
     // Open the app with the tokens
