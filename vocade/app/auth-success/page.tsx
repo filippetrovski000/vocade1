@@ -7,6 +7,7 @@ export default function AuthSuccess() {
 
   const openApp = () => {
     const fullHash = window.location.hash;
+    // Use the vocade:// scheme for deep linking
     const deepLinkUrl = `vocade://auth/callback${fullHash}`;
     console.log('Opening deep link:', deepLinkUrl);
     
@@ -35,7 +36,7 @@ export default function AuthSuccess() {
           Return to App
         </h1>
         <p className="text-gray-300">
-          Click "Open App" to finish logging in
+          Click &quot;Open App&quot; to finish logging in
         </p>
         <button
           onClick={openApp}

@@ -1,24 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin'
-          }
-        ]
-      }
-    ];
-  },
+  output: 'export',
+  distDir: 'dist',
   images: {
     unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**'
+      }
+    ]
+  },
+  rewrites: async () => {
+    return [
+      {
+        source: '/auth/callback',
+        destination: '/api/auth/callback'
       }
     ]
   }
