@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { openUrl } from '@tauri-apps/plugin-opener';
 
 export default function AuthSuccess() {
   const [redirectFailed, setRedirectFailed] = useState(false);
@@ -35,8 +34,15 @@ export default function AuthSuccess() {
     attemptRef.current += 1;
 
     try {
-      // Use Tauri's openUrl plugin to handle the deep link
-      await openUrl(deepLinkUrl);
+      // Try multiple approaches for deep linking
+      // First, try location.href
+      window.location.href = deepLinkUrl;
+      
+      // Set up a fallback timer
+      timeoutRef.current = setTimeout(() => {
+        // If we're still here after a delay, the deep link probably failed
+        setRedirectFailed(true);
+      }, 1000);
     } catch (err) {
       console.error('Failed to open deep link:', err);
       setRedirectFailed(true);
