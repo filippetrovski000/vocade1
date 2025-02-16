@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '@/lib/utils/supabase';
 import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
-import { Window } from '@tauri-apps/api/window';
+import { getCurrent, getAll } from '@tauri-apps/api/window';
 
 export const useDeepLinkAuth = () => {
   const router = useRouter();
@@ -43,16 +43,36 @@ export const useDeepLinkAuth = () => {
           console.log('Session data:', data);
           
           if (data.session) {
-            console.log('Session established, focusing window and redirecting to dashboard...');
+            console.log('Session established, managing windows...');
             try {
+              // Get all existing windows
+              const windows = await getAll();
+              console.log('Existing windows:', windows.map(w => w.label));
+
+              // Try to get the main window
+              const mainWindow = windows.find(w => w.label === 'main');
+              
+              if (!mainWindow) {
+                throw new Error('Main window not found');
+              }
+
               // Focus the main window
-              const mainWindow = new Window('main');
               await mainWindow.setFocus();
+              
+              // Use the Tauri window API to navigate
+              await mainWindow.emit('navigate', { path: '/dashboard' });
+              
+              // Close any other windows that might be auth related
+              for (const window of windows) {
+                if (window.label !== 'main') {
+                  await window.close();
+                }
+              }
             } catch (err) {
-              console.error('Error focusing window:', err);
+              console.error('Error managing windows:', err);
+              // If window management fails, try a fallback approach
+              window.location.href = '/dashboard';
             }
-            // Force a page reload to ensure the session is properly initialized
-            window.location.href = '/dashboard';
           }
         } else {
           throw new Error('Missing required tokens in URL');
