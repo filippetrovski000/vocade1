@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '@/lib/utils/supabase';
 import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
-import { getCurrent, getAll } from '@tauri-apps/api/window';
+import { Window } from '@tauri-apps/api/window';
 
 export const useDeepLinkAuth = () => {
   const router = useRouter();
@@ -45,29 +45,14 @@ export const useDeepLinkAuth = () => {
           if (data.session) {
             console.log('Session established, managing windows...');
             try {
-              // Get all existing windows
-              const windows = await getAll();
-              console.log('Existing windows:', windows.map(w => w.label));
-
-              // Try to get the main window
-              const mainWindow = windows.find(w => w.label === 'main');
+              // Get the current window
+              const currentWindow = new Window('main');
               
-              if (!mainWindow) {
-                throw new Error('Main window not found');
-              }
-
-              // Focus the main window
-              await mainWindow.setFocus();
+              // Focus the window
+              await currentWindow.setFocus();
               
               // Use the Tauri window API to navigate
-              await mainWindow.emit('navigate', { path: '/dashboard' });
-              
-              // Close any other windows that might be auth related
-              for (const window of windows) {
-                if (window.label !== 'main') {
-                  await window.close();
-                }
-              }
+              await currentWindow.emit('navigate', { path: '/dashboard' });
             } catch (err) {
               console.error('Error managing windows:', err);
               // If window management fails, try a fallback approach
