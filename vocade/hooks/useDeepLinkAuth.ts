@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '@/lib/utils/supabase';
 import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
+import { Window } from '@tauri-apps/api/window';
 
 export const useDeepLinkAuth = () => {
   const router = useRouter();
@@ -42,7 +43,14 @@ export const useDeepLinkAuth = () => {
           console.log('Session data:', data);
           
           if (data.session) {
-            console.log('Session established, redirecting to dashboard...');
+            console.log('Session established, focusing window and redirecting to dashboard...');
+            try {
+              // Focus the main window
+              const mainWindow = new Window('main');
+              await mainWindow.setFocus();
+            } catch (err) {
+              console.error('Error focusing window:', err);
+            }
             // Force a page reload to ensure the session is properly initialized
             window.location.href = '/dashboard';
           }
