@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 export default function AuthSuccess() {
   const [redirectFailed, setRedirectFailed] = useState(false);
   const attemptRef = useRef(0);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const openApp = useCallback(() => {
+  const openApp = useCallback(async () => {
     // Get the full URL hash (includes access_token and refresh_token)
     const hash = window.location.hash;
     
@@ -30,42 +31,17 @@ export default function AuthSuccess() {
       }
     }
 
-    // Try multiple approaches for deep linking
-    const tryDeepLink = () => {
-      // Increment attempt counter
-      attemptRef.current += 1;
+    // Increment attempt counter
+    attemptRef.current += 1;
 
-      // Try hidden iframe approach first
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = deepLinkUrl;
-      document.body.appendChild(iframe);
-
-      // Remove iframe after a short delay
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 100);
-
-      // Fallback to location.href after a short delay
-      timeoutRef.current = setTimeout(() => {
-        // Only try location.href if iframe didn't work
-        if (!redirectFailed) {
-          window.location.href = deepLinkUrl;
-        }
-      }, 200);
-    };
-
-    // Start deep linking attempt
-    tryDeepLink();
-
-    // Set up failure detection
-    setTimeout(() => {
-      if (attemptRef.current < 2 && !redirectFailed) {
-        setRedirectFailed(true);
-        tryDeepLink(); // Retry once if failed
-      }
-    }, 1000);
-  }, [redirectFailed]);
+    try {
+      // Use Tauri's openUrl plugin to handle the deep link
+      await openUrl(deepLinkUrl);
+    } catch (err) {
+      console.error('Failed to open deep link:', err);
+      setRedirectFailed(true);
+    }
+  }, []);
 
   useEffect(() => {
     // Only try to open automatically on first load

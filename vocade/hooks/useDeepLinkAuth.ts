@@ -45,20 +45,21 @@ export const useDeepLinkAuth = () => {
           if (data.session) {
             console.log('Session established, managing windows...');
             try {
-              // Try to get the main window
-              const mainWindow = new Window('main');
-              console.log('Found main window, attempting to focus...');
+              // Get the current window
+              const currentWindow = Window.getCurrent();
+              console.log('Got current window, attempting to focus...');
 
-              // Focus the window and bring it to front
-              await mainWindow.setFocus();
-              await mainWindow.unminimize();
+              // Focus and show the window
+              await currentWindow.show();
+              await currentWindow.setFocus();
+              await currentWindow.unminimize();
               
               // Small delay to ensure window is ready
               await new Promise(resolve => setTimeout(resolve, 100));
               
               // Navigate to dashboard
               console.log('Navigating to dashboard...');
-              await mainWindow.emit('navigate', { path: '/dashboard' });
+              router.push('/dashboard');
             } catch (err) {
               console.error('Error managing windows:', err);
               // If window management fails, try a fallback approach
