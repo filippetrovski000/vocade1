@@ -6,24 +6,31 @@ export default function AuthSuccess() {
   const [attempts, setAttempts] = useState(0);
 
   const openApp = () => {
-    // Get both hash and search parameters
+    // Get the full URL hash (includes access_token and refresh_token)
     const hash = window.location.hash;
-    const search = window.location.search;
     
-    // Combine them for the deep link
-    let params = '';
-    if (hash && hash.startsWith('#')) {
-      params = hash.substring(1); // Remove the # symbol
-    } else if (search && search.startsWith('?')) {
-      params = search.substring(1); // Remove the ? symbol
+    if (!hash) {
+      console.error('No hash parameters found');
+      return;
     }
+
+    // Remove the leading # and create URLSearchParams
+    const params = new URLSearchParams(hash.substring(1));
     
-    console.log('Auth params:', params);
+    // Get the tokens
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
     
+    if (!accessToken || !refreshToken) {
+      console.error('Missing tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
+      return;
+    }
+
     // Create the deep link URL with the auth parameters
-    const deepLinkUrl = `vocade://auth/callback?${params}`;
+    const deepLinkUrl = `vocade://auth/callback#access_token=${accessToken}&refresh_token=${refreshToken}`;
     console.log('Opening deep link:', deepLinkUrl);
     
+    // Open the app with the tokens
     window.location.href = deepLinkUrl;
     setAttempts(prev => prev + 1);
   };

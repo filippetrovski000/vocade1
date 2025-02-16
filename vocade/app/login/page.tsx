@@ -24,9 +24,14 @@ export default function LoginPage() {
   // Check if already authenticated
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.push('/dashboard');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Current session:', session ? 'Found' : 'None');
+        if (session) {
+          router.push('/dashboard');
+        }
+      } catch (err) {
+        console.error('Error checking session:', err);
       }
     };
     
@@ -38,7 +43,7 @@ export default function LoginPage() {
       setIsLoading(true);
       setError('');
 
-      const { data } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           skipBrowserRedirect: true,
@@ -52,13 +57,14 @@ export default function LoginPage() {
         }
       });
 
+      if (error) throw error;
       if (!data?.url) throw new Error('No auth URL returned');
       
       console.log('Opening auth URL in browser:', data.url);
       await openUrl(data.url);
     } catch (err) {
+      console.error('Login error:', err);
       setError('Failed to login with Google. Please try again.');
-      console.error(err);
     } finally {
       setIsLoading(false);
     }

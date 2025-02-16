@@ -18,13 +18,12 @@ export const useDeepLinkAuth = () => {
         const urlObj = new URL(url);
         console.log('URL object:', urlObj);
         
+        // Get hash parameters (remove the leading #)
         const hashParams = new URLSearchParams(urlObj.hash.substring(1));
-        const searchParams = urlObj.searchParams;
         console.log('Hash params:', Object.fromEntries(hashParams));
-        console.log('Search params:', Object.fromEntries(searchParams));
 
-        const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
         
         console.log('Tokens found:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
 
