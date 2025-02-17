@@ -15,6 +15,9 @@ fn main() {
             // Show the window if it's hidden
             let _ = window.unminimize();
             let _ = window.show();
+            // Bring window to front
+            let _ = window.set_always_on_top(true);
+            let _ = window.set_always_on_top(false);
         }))
         .run(tauri::generate_context!())
         .expect("error while running Vocade");

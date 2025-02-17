@@ -16,35 +16,44 @@ export const useDeepLinkAuth = () => {
         
         // Parse the URL and get the hash
         const hashParams = new URLSearchParams(url.hash.substring(1));
-        const searchParams = url.searchParams;
         console.log('Hash params:', Object.fromEntries(hashParams));
-        console.log('Search params:', Object.fromEntries(searchParams));
 
-        const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+        // Get access token from hash
+        const accessToken = hashParams.get('access_token');
+        if (!accessToken) {
+          throw new Error('No access token found in URL');
+        }
+
+        // Get token type and expiry
+        const tokenType = hashParams.get('token_type');
+        const expiresIn = hashParams.get('expires_in');
+
+        console.log('Token info:', { 
+          hasAccessToken: !!accessToken, 
+          tokenType, 
+          expiresIn 
+        });
+
+        // Set the session with the token
+        console.log('Setting Supabase session...');
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          // Since we're using implicit flow, we don't have a refresh token
+          refresh_token: ''
+        });
         
-        console.log('Tokens found:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
-
-        if (accessToken && refreshToken) {
-          console.log('Setting Supabase session...');
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-          
-          if (error) {
-            console.error('Session error:', error);
-            throw error;
-          }
-          
-          console.log('Session data:', data);
-          
-          if (data.session) {
-            console.log('Session established, navigating...');
-            router.push('/dashboard');
-          }
+        if (error) {
+          console.error('Session error:', error);
+          throw error;
+        }
+        
+        console.log('Session data:', data);
+        
+        if (data.session) {
+          console.log('Session established, navigating...');
+          router.push('/dashboard');
         } else {
-          throw new Error('Missing required tokens in URL');
+          throw new Error('No session established');
         }
       } catch (err) {
         console.error('Error handling deep link:', err);

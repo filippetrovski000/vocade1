@@ -18,6 +18,17 @@ export default function AuthSuccess() {
         return;
       }
 
+      // Parse hash parameters to check for errors
+      const hashParams = new URLSearchParams(fullHash.substring(1));
+      const error = hashParams.get('error');
+      const errorDescription = hashParams.get('error_description');
+
+      if (error) {
+        console.error('Auth error:', error, errorDescription);
+        setRedirectFailed(true);
+        return;
+      }
+
       // Create the deep link URL with the hash
       const deepLinkUrl = `vocade://auth/callback${fullHash}`;
       console.log('Opening deep link:', deepLinkUrl);
