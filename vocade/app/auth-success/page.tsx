@@ -8,28 +8,18 @@ export default function AuthSuccess() {
 
   const openApp = async () => {
     try {
-      // Get the current URL's search params
-      const urlParams = new URLSearchParams(window.location.search);
-      console.log('URL parameters:', Object.fromEntries(urlParams));
-
-      // Check for error in the URL
-      const error = urlParams.get('error');
-      if (error) {
-        console.error('Auth error:', error);
+      // Get the full URL hash
+      const fullHash = window.location.hash;
+      console.log('Full hash:', fullHash);
+      
+      if (!fullHash) {
+        console.error('No hash parameters found');
         setRedirectFailed(true);
         return;
       }
 
-      // Get code from URL
-      const code = urlParams.get('code');
-      if (!code) {
-        console.error('No authorization code found in URL');
-        setRedirectFailed(true);
-        return;
-      }
-
-      // Construct deep link URL with the code
-      const deepLinkUrl = `vocade://auth/callback?code=${encodeURIComponent(code)}`;
+      // Create the deep link URL with the hash
+      const deepLinkUrl = `vocade://auth/callback${fullHash}`;
       console.log('Opening deep link:', deepLinkUrl);
 
       // Focus existing window if possible
@@ -69,12 +59,12 @@ export default function AuthSuccess() {
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="flex flex-col items-center justify-center gap-4 text-center text-white p-6">
         <h1 className="text-2xl font-semibold">
-          {redirectFailed ? 'Unable to Open App' : 'Redirecting to App...'}
+          {redirectFailed ? 'Unable to Open App' : 'Return to App'}
         </h1>
         <p className="text-gray-300">
           {redirectFailed 
             ? 'Click the button below to try again'
-            : 'If the app doesn\'t open automatically, click the button below'}
+            : 'Click "Open App" to finish logging in'}
         </p>
         <button
           onClick={openApp}

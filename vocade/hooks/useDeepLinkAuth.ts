@@ -14,39 +14,38 @@ export const useDeepLinkAuth = () => {
         console.log('Received deep link URL:', urls[0]);
         const url = new URL(urls[0]);
         
-        // Get search parameters
-        const params = url.searchParams;
-        console.log('URL parameters:', Object.fromEntries(params));
+        // Parse the URL and get the hash
+        const hashParams = new URLSearchParams(url.hash.substring(1));
+        const searchParams = url.searchParams;
+        console.log('Hash params:', Object.fromEntries(hashParams));
+        console.log('Search params:', Object.fromEntries(searchParams));
 
-        // Check for error
-        const error = params.get('error');
-        if (error) {
-          console.error('Auth error:', error);
-          router.push('/login');
-          return;
+        const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+        
+        console.log('Tokens found:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
+
+        if (accessToken && refreshToken) {
+          console.log('Setting Supabase session...');
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error('Session error:', error);
+            throw error;
+          }
+          
+          console.log('Session data:', data);
+          
+          if (data.session) {
+            console.log('Session established, navigating...');
+            router.push('/dashboard');
+          }
+        } else {
+          throw new Error('Missing required tokens in URL');
         }
-
-        // Get authorization code
-        const code = params.get('code');
-        if (!code) {
-          throw new Error('No authorization code found in URL');
-        }
-
-        // Exchange code for session
-        console.log('Exchanging code for session...');
-        const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
-
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          throw sessionError;
-        }
-
-        if (!sessionData.session) {
-          throw new Error('No session returned from code exchange');
-        }
-
-        console.log('Session established:', sessionData.session.user.email);
-        router.push('/dashboard');
       } catch (err) {
         console.error('Error handling deep link:', err);
         router.push('/login');
