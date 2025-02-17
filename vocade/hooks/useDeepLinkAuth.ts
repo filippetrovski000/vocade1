@@ -27,24 +27,45 @@ export const useDeepLinkAuth = () => {
 
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
+        const email = hashParams.get('email');
         
         console.log('Tokens found:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
 
         if (accessToken && refreshToken) {
           console.log('Setting Supabase session...');
-          const { data, error } = await supabase.auth.setSession({
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
           
-          if (error) {
-            console.error('Session error:', error);
-            throw error;
+          if (sessionError) {
+            console.error('Session error:', sessionError);
+            throw sessionError;
           }
           
-          console.log('Session data:', data);
+          console.log('Session data:', sessionData);
           
-          if (data.session) {
+          if (sessionData.session) {
+            // Generate magic link for future sign-ins
+            if (email) {
+              try {
+                const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+                  email,
+                  options: {
+                    data: {
+                      source: 'desktop_app',
+                    }
+                  }
+                });
+
+                if (magicLinkError) {
+                  console.error('Error generating magic link:', magicLinkError);
+                }
+              } catch (err) {
+                console.error('Failed to generate magic link:', err);
+              }
+            }
+
             console.log('Session established, managing windows...');
             try {
               // Get the main window

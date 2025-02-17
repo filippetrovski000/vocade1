@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import supabase from '@/lib/utils/supabase';
 
 export default function AuthSuccess() {
   const [redirectFailed, setRedirectFailed] = useState(false);
@@ -17,24 +18,31 @@ export default function AuthSuccess() {
       return;
     }
 
-    // Create the deep link URL with the auth parameters
-    // Use encodeURIComponent to handle special characters
-    const deepLinkUrl = `vocade://auth/callback${encodeURIComponent(hash)}`;
-    console.log('Opening deep link:', deepLinkUrl);
-    
-    // Focus existing window if possible
-    if (window.opener) {
-      try {
-        window.opener.focus();
-      } catch (e) {
-        console.error('Failed to focus opener window:', e);
-      }
-    }
-
-    // Increment attempt counter
-    attemptRef.current += 1;
-
     try {
+      // Get user email from the session
+      const { data: { session } } = await supabase.auth.getSession();
+      const email = session?.user?.email;
+
+      // Create the deep link URL with the auth parameters and email
+      // Use encodeURIComponent to handle special characters
+      const hashWithEmail = email 
+        ? `${hash}&email=${encodeURIComponent(email)}`
+        : hash;
+      const deepLinkUrl = `vocade://auth/callback${encodeURIComponent(hashWithEmail)}`;
+      console.log('Opening deep link:', deepLinkUrl);
+      
+      // Focus existing window if possible
+      if (window.opener) {
+        try {
+          window.opener.focus();
+        } catch (e) {
+          console.error('Failed to focus opener window:', e);
+        }
+      }
+
+      // Increment attempt counter
+      attemptRef.current += 1;
+
       // Try multiple approaches for deep linking
       // First, try location.href
       window.location.href = deepLinkUrl;
