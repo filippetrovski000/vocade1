@@ -61,7 +61,12 @@ export default function LoginPage() {
       if (!data?.url) throw new Error('No auth URL returned');
       
       console.log('Opening auth URL in browser:', data.url);
-      await openUrl(data.url);
+      
+      if (process.env.NODE_ENV === 'development') {
+        window.location.href = data.url;
+      } else {
+        await openUrl(data.url);
+      }
     } catch (err) {
       console.error('Login error:', err);
       setError('Failed to login with Google. Please try again.');
