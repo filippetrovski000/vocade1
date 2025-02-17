@@ -46,29 +46,9 @@ export const useDeepLinkAuth = () => {
           console.log('Session data:', sessionData);
           
           if (sessionData.session) {
-            console.log('Session established, managing windows...');
-            try {
-              // Get the main window
-              const mainWindow = new Window('main');
-              console.log('Got main window, attempting to focus...');
-
-              // Show and focus the window
-              await mainWindow.show();
-              await mainWindow.setFocus();
-              await mainWindow.unminimize();
-              
-              // Small delay to ensure window is ready
-              await new Promise(resolve => setTimeout(resolve, 500));
-              
-              // Navigate to dashboard
-              console.log('Navigating to dashboard...');
-              router.push('/dashboard');
-            } catch (err) {
-              console.error('Error managing windows:', err);
-              // If window management fails, try a fallback approach
-              console.log('Falling back to browser navigation...');
-              window.location.href = '/dashboard';
-            }
+            console.log('Session established, navigating...');
+            // Navigate to dashboard without window management
+            router.push('/dashboard');
           }
         } else {
           throw new Error('Missing required tokens in URL');

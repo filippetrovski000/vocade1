@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 export default function AuthSuccess() {
   const [redirectFailed, setRedirectFailed] = useState(false);
   const attemptRef = useRef(0);
-  const timeoutRef = useRef<NodeJS.Timeout>();
 
   const openApp = async () => {
     // Get the full URL hash (includes access_token and refresh_token)
@@ -45,11 +44,6 @@ export default function AuthSuccess() {
     try {
       // Try to open the app
       window.location.href = deepLinkUrl;
-      
-      // Set up a fallback timer
-      timeoutRef.current = setTimeout(() => {
-        setRedirectFailed(true);
-      }, 2000);
     } catch (err) {
       console.error('Failed to open deep link:', err);
       setRedirectFailed(true);
@@ -70,9 +64,6 @@ export default function AuthSuccess() {
     // Cleanup
     return () => {
       clearTimeout(closeTimer);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
     };
   }, []);
 
@@ -80,12 +71,12 @@ export default function AuthSuccess() {
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="flex flex-col items-center justify-center gap-4 text-center text-white p-6">
         <h1 className="text-2xl font-semibold">
-          {redirectFailed ? 'Unable to Open App' : 'Return to App'}
+          {redirectFailed ? 'Unable to Open App' : 'Redirecting to App...'}
         </h1>
         <p className="text-gray-300">
           {redirectFailed 
             ? 'Click the button below to try again'
-            : 'Click "Open App" to finish logging in'}
+            : 'If the app doesn\'t open automatically, click the button below'}
         </p>
         <button
           onClick={openApp}
