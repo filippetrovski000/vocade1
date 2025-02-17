@@ -7,30 +7,40 @@ export default function AuthSuccess() {
   const attemptRef = useRef(0);
 
   const openApp = async () => {
-    // Get the current URL's search params
-    const urlParams = new URLSearchParams(window.location.search);
-
-    // Check for error in the URL
-    const error = urlParams.get('error');
-    if (error) {
-      console.error('Auth error:', error);
-      setRedirectFailed(true);
-      return;
-    }
-
-    // Get code from URL
-    const code = urlParams.get('code');
-    if (!code) {
-      console.error('No authorization code found in URL');
-      setRedirectFailed(true);
-      return;
-    }
-
-    // Construct deep link URL with the code
-    const deepLinkUrl = `vocade://auth/callback?code=${code}`;
-    console.log('Opening deep link:', deepLinkUrl);
-
     try {
+      // Get the current URL's search params
+      const urlParams = new URLSearchParams(window.location.search);
+      console.log('URL parameters:', Object.fromEntries(urlParams));
+
+      // Check for error in the URL
+      const error = urlParams.get('error');
+      if (error) {
+        console.error('Auth error:', error);
+        setRedirectFailed(true);
+        return;
+      }
+
+      // Get code from URL
+      const code = urlParams.get('code');
+      if (!code) {
+        console.error('No authorization code found in URL');
+        setRedirectFailed(true);
+        return;
+      }
+
+      // Construct deep link URL with the code
+      const deepLinkUrl = `vocade://auth/callback?code=${encodeURIComponent(code)}`;
+      console.log('Opening deep link:', deepLinkUrl);
+
+      // Focus existing window if possible
+      if (window.opener) {
+        try {
+          window.opener.focus();
+        } catch (e) {
+          console.error('Failed to focus opener window:', e);
+        }
+      }
+
       window.location.href = deepLinkUrl;
     } catch (err) {
       console.error('Failed to open deep link:', err);
