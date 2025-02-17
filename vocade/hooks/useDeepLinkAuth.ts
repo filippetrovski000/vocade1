@@ -15,21 +15,16 @@ export const useDeepLinkAuth = () => {
         console.log('Received deep link URL:', urls[0]);
         const url = urls[0];
         
-        // Extract the hash part (everything after #)
-        const hashIndex = url.indexOf('#');
-        if (hashIndex === -1) {
-          throw new Error('No hash found in URL');
-        }
+        // Parse the URL to get query parameters
+        const urlObj = new URL(url);
+        console.log('URL object:', urlObj);
         
-        const hash = url.slice(hashIndex + 1);
-        console.log('Extracted hash:', hash);
-        
-        // Parse the hash parameters
-        const hashParams = new URLSearchParams(hash);
-        console.log('Hash params:', Object.fromEntries(hashParams));
+        // Get query parameters
+        const params = urlObj.searchParams;
+        console.log('URL params:', Object.fromEntries(params));
 
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
         
         console.log('Tokens found:', { 
           accessToken: !!accessToken, 

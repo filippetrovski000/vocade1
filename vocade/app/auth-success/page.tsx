@@ -17,9 +17,17 @@ export default function AuthSuccess() {
       return;
     }
 
-    // Create the deep link URL without encoding the entire hash
-    // Just pass the hash as is since it's already properly formatted
-    const deepLinkUrl = `vocade://auth/callback${hash}`;
+    // Parse the hash to get individual parameters
+    const params = new URLSearchParams(hash.substring(1));
+    const cleanParams = new URLSearchParams();
+
+    // Clean and re-encode each parameter individually
+    for (const [key, value] of params.entries()) {
+      cleanParams.append(key, value);
+    }
+
+    // Create the deep link URL with properly encoded parameters
+    const deepLinkUrl = `vocade://auth/callback?${cleanParams.toString()}`;
     console.log('Opening deep link:', deepLinkUrl);
     
     // Focus existing window if possible
