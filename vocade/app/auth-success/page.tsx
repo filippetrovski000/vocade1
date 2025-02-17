@@ -7,38 +7,51 @@ export default function AuthSuccess() {
   const attemptRef = useRef(0);
 
   const openApp = async () => {
-    // Get the full URL hash (includes access_token and refresh_token)
+    // Get parameters from both hash and search
     const hash = window.location.hash;
+    const search = window.location.search;
     
-    if (!hash) {
-      console.error('No hash parameters found');
-      setRedirectFailed(true);
-      return;
-    }
-
-    // Create the deep link URL with the hash parameters
-    const deepLinkUrl = `vocade://auth/callback${hash}`;
-    console.log('Opening deep link:', deepLinkUrl);
-    
-    // Focus existing window if possible
-    if (window.opener) {
-      try {
-        window.opener.focus();
-      } catch (e) {
-        console.error('Failed to focus opener window:', e);
+    // If we have hash parameters, parse them
+    if (hash) {
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      
+      if (accessToken && refreshToken) {
+        // Convert hash parameters to search parameters
+        const params = new URLSearchParams();
+        hashParams.forEach((value, key) => {
+          params.append(key, value);
+        });
+        
+        const deepLinkUrl = `vocade://auth/callback?${params.toString()}`;
+        console.log('Opening deep link with hash params:', deepLinkUrl);
+        
+        try {
+          window.location.href = deepLinkUrl;
+          return;
+        } catch (err) {
+          console.error('Failed to open deep link with hash params:', err);
+        }
       }
     }
-
-    // Increment attempt counter
-    attemptRef.current += 1;
-
-    try {
-      // Try to open the app
-      window.location.href = deepLinkUrl;
-    } catch (err) {
-      console.error('Failed to open deep link:', err);
-      setRedirectFailed(true);
+    
+    // If we have search parameters or hash failed, try search parameters
+    if (search) {
+      const deepLinkUrl = `vocade://auth/callback${search}`;
+      console.log('Opening deep link with search params:', deepLinkUrl);
+      
+      try {
+        window.location.href = deepLinkUrl;
+        return;
+      } catch (err) {
+        console.error('Failed to open deep link with search params:', err);
+      }
     }
+    
+    // If we get here, both attempts failed
+    console.error('No valid parameters found in hash or search');
+    setRedirectFailed(true);
   };
 
   useEffect(() => {

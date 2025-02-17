@@ -7,6 +7,15 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            // Get the main window
+            let window = app.get_webview_window("main").unwrap();
+            // Focus the window
+            let _ = window.set_focus();
+            // Show the window if it's hidden
+            let _ = window.unminimize();
+            let _ = window.show();
+        }))
         .run(tauri::generate_context!())
         .expect("error while running Vocade");
 }

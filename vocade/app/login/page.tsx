@@ -51,9 +51,8 @@ export default function LoginPage() {
             ? process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL_DEV
             : process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL,
           queryParams: {
-            access_type: 'offline',
             prompt: 'consent',
-            response_type: 'token',
+            response_type: 'token'
           },
         }
       });
