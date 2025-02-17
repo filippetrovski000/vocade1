@@ -27,12 +27,10 @@ export const useDeepLinkAuth = () => {
 
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
-        const magicToken = hashParams.get('magic_token');
         
         console.log('Tokens found:', { 
           accessToken: !!accessToken, 
-          refreshToken: !!refreshToken,
-          magicToken: !!magicToken 
+          refreshToken: !!refreshToken
         });
 
         if (accessToken && refreshToken) {
@@ -50,24 +48,6 @@ export const useDeepLinkAuth = () => {
           console.log('Session data:', sessionData);
           
           if (sessionData.session) {
-            // Verify magic link token if present
-            if (magicToken) {
-              try {
-                const { error: verifyError } = await supabase.auth.verifyOtp({
-                  token_hash: magicToken,
-                  type: 'magiclink'
-                });
-
-                if (verifyError) {
-                  console.error('Error verifying magic link:', verifyError);
-                } else {
-                  console.log('Magic link verified successfully');
-                }
-              } catch (err) {
-                console.error('Failed to verify magic link:', err);
-              }
-            }
-
             console.log('Session established, managing windows...');
             try {
               // Get the main window

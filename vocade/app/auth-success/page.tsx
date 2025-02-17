@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import supabase from '@/lib/utils/supabase';
+import { useEffect, useRef, useState } from 'react';
 
 export default function AuthSuccess() {
   const [redirectFailed, setRedirectFailed] = useState(false);
   const attemptRef = useRef(0);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const openApp = useCallback(async () => {
+  const openApp = async () => {
     // Get the full URL hash (includes access_token and refresh_token)
     const hash = window.location.hash;
     
@@ -18,63 +17,35 @@ export default function AuthSuccess() {
       return;
     }
 
-    try {
-      // Get user email from the session
-      const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email;
-
-      if (email) {
-        // Generate magic link token
-        const { data: magicData, error: magicError } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: false,
-            data: {
-              source: 'desktop_app'
-            }
-          }
-        });
-
-        if (magicError) {
-          console.error('Error generating magic link:', magicError);
-        } else {
-          console.log('Magic link generated successfully');
-        }
-
-        // Create the deep link URL with auth parameters, email, and magic link token
-        const hashParams = new URLSearchParams(hash.substring(1));
-        const magicLinkToken = magicData?.user?.confirmation_sent_at 
-          ? `&magic_token=${encodeURIComponent(magicData.user.confirmation_sent_at.toString())}`
-          : '';
-        
-        const deepLinkUrl = `vocade://auth/callback${encodeURIComponent(hash + magicLinkToken)}`;
-        console.log('Opening deep link:', deepLinkUrl);
-        
-        // Focus existing window if possible
-        if (window.opener) {
-          try {
-            window.opener.focus();
-          } catch (e) {
-            console.error('Failed to focus opener window:', e);
-          }
-        }
-
-        // Increment attempt counter
-        attemptRef.current += 1;
-
-        // Try to open the app
-        window.location.href = deepLinkUrl;
-        
-        // Set up a fallback timer
-        timeoutRef.current = setTimeout(() => {
-          setRedirectFailed(true);
-        }, 2000);
+    // Create the deep link URL with encoded hash
+    const deepLinkUrl = `vocade://auth/callback${encodeURIComponent(hash)}`;
+    console.log('Opening deep link:', deepLinkUrl);
+    
+    // Focus existing window if possible
+    if (window.opener) {
+      try {
+        window.opener.focus();
+      } catch (e) {
+        console.error('Failed to focus opener window:', e);
       }
+    }
+
+    // Increment attempt counter
+    attemptRef.current += 1;
+
+    try {
+      // Try to open the app
+      window.location.href = deepLinkUrl;
+      
+      // Set up a fallback timer
+      timeoutRef.current = setTimeout(() => {
+        setRedirectFailed(true);
+      }, 2000);
     } catch (err) {
       console.error('Failed to open deep link:', err);
       setRedirectFailed(true);
     }
-  }, []);
+  };
 
   useEffect(() => {
     // Only try to open automatically on first load
@@ -94,7 +65,7 @@ export default function AuthSuccess() {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [openApp]);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
