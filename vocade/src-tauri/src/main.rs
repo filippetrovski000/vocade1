@@ -10,7 +10,8 @@ fn main() {
             let app_handle = app.handle();
 
             // Prevent multiple instances
-            if let Err(_) = app_handle.try_global_single_instance() {
+            let instance = app_handle.get_webview_window("main");
+            if instance.is_some() {
                 println!("Another instance of Vocade is already running. Exiting...");
                 process::exit(1);
             }
@@ -18,8 +19,6 @@ fn main() {
             Ok(())
         })
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_window::init())
-        .plugin(tauri_plugin_shell::init())
         .run(tauri::generate_context!())
         .expect("error while running Vocade");
 }
