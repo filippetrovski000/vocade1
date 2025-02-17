@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '@/lib/utils/supabase';
 import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
-import { Window } from '@tauri-apps/api/window';
 
 export const useDeepLinkAuth = () => {
   const router = useRouter();
@@ -15,16 +14,19 @@ export const useDeepLinkAuth = () => {
         console.log('Received deep link URL:', urls[0]);
         const url = urls[0];
         
-        // Parse the URL to get query parameters
+        // Parse the URL and get both hash and search parameters
         const urlObj = new URL(url);
         console.log('URL object:', urlObj);
         
-        // Get query parameters
-        const params = urlObj.searchParams;
-        console.log('URL params:', Object.fromEntries(params));
+        // Try both hash and search parameters
+        const hashParams = new URLSearchParams(urlObj.hash.substring(1));
+        const searchParams = urlObj.searchParams;
+        console.log('Hash params:', Object.fromEntries(hashParams));
+        console.log('Search params:', Object.fromEntries(searchParams));
 
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
+        // Try to get tokens from either hash or search params
+        const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
         
         console.log('Tokens found:', { 
           accessToken: !!accessToken, 
@@ -47,7 +49,6 @@ export const useDeepLinkAuth = () => {
           
           if (sessionData.session) {
             console.log('Session established, navigating...');
-            // Navigate to dashboard without window management
             router.push('/dashboard');
           }
         } else {
