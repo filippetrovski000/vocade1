@@ -53,6 +53,7 @@ export default function LoginPage() {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
+            response_type: 'token',
           },
         }
       });
