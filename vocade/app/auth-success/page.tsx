@@ -23,35 +23,53 @@ export default function AuthSuccess() {
       const { data: { session } } = await supabase.auth.getSession();
       const email = session?.user?.email;
 
-      // Create the deep link URL with the auth parameters and email
-      // Use encodeURIComponent to handle special characters
-      const hashWithEmail = email 
-        ? `${hash}&email=${encodeURIComponent(email)}`
-        : hash;
-      const deepLinkUrl = `vocade://auth/callback${encodeURIComponent(hashWithEmail)}`;
-      console.log('Opening deep link:', deepLinkUrl);
-      
-      // Focus existing window if possible
-      if (window.opener) {
-        try {
-          window.opener.focus();
-        } catch (e) {
-          console.error('Failed to focus opener window:', e);
+      if (email) {
+        // Generate magic link token
+        const { data: magicData, error: magicError } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false,
+            data: {
+              source: 'desktop_app'
+            }
+          }
+        });
+
+        if (magicError) {
+          console.error('Error generating magic link:', magicError);
+        } else {
+          console.log('Magic link generated successfully');
         }
+
+        // Create the deep link URL with auth parameters, email, and magic link token
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const magicLinkToken = magicData?.user?.confirmation_sent_at 
+          ? `&magic_token=${encodeURIComponent(magicData.user.confirmation_sent_at.toString())}`
+          : '';
+        
+        const deepLinkUrl = `vocade://auth/callback${encodeURIComponent(hash + magicLinkToken)}`;
+        console.log('Opening deep link:', deepLinkUrl);
+        
+        // Focus existing window if possible
+        if (window.opener) {
+          try {
+            window.opener.focus();
+          } catch (e) {
+            console.error('Failed to focus opener window:', e);
+          }
+        }
+
+        // Increment attempt counter
+        attemptRef.current += 1;
+
+        // Try to open the app
+        window.location.href = deepLinkUrl;
+        
+        // Set up a fallback timer
+        timeoutRef.current = setTimeout(() => {
+          setRedirectFailed(true);
+        }, 2000);
       }
-
-      // Increment attempt counter
-      attemptRef.current += 1;
-
-      // Try multiple approaches for deep linking
-      // First, try location.href
-      window.location.href = deepLinkUrl;
-      
-      // Set up a fallback timer
-      timeoutRef.current = setTimeout(() => {
-        // If we're still here after a delay, the deep link probably failed
-        setRedirectFailed(true);
-      }, 2000); // Increased timeout to 2 seconds
     } catch (err) {
       console.error('Failed to open deep link:', err);
       setRedirectFailed(true);

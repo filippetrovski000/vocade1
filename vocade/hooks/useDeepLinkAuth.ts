@@ -27,9 +27,13 @@ export const useDeepLinkAuth = () => {
 
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
-        const email = hashParams.get('email');
+        const magicToken = hashParams.get('magic_token');
         
-        console.log('Tokens found:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
+        console.log('Tokens found:', { 
+          accessToken: !!accessToken, 
+          refreshToken: !!refreshToken,
+          magicToken: !!magicToken 
+        });
 
         if (accessToken && refreshToken) {
           console.log('Setting Supabase session...');
@@ -46,23 +50,21 @@ export const useDeepLinkAuth = () => {
           console.log('Session data:', sessionData);
           
           if (sessionData.session) {
-            // Generate magic link for future sign-ins
-            if (email) {
+            // Verify magic link token if present
+            if (magicToken) {
               try {
-                const { error: magicLinkError } = await supabase.auth.signInWithOtp({
-                  email,
-                  options: {
-                    data: {
-                      source: 'desktop_app',
-                    }
-                  }
+                const { error: verifyError } = await supabase.auth.verifyOtp({
+                  token_hash: magicToken,
+                  type: 'magiclink'
                 });
 
-                if (magicLinkError) {
-                  console.error('Error generating magic link:', magicLinkError);
+                if (verifyError) {
+                  console.error('Error verifying magic link:', verifyError);
+                } else {
+                  console.log('Magic link verified successfully');
                 }
               } catch (err) {
-                console.error('Failed to generate magic link:', err);
+                console.error('Failed to verify magic link:', err);
               }
             }
 
