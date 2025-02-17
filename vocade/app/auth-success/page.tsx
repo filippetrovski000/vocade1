@@ -7,9 +7,8 @@ export default function AuthSuccess() {
   const attemptRef = useRef(0);
 
   const openApp = async () => {
-    // Get the current URL's search params and hash
+    // Get the current URL's search params
     const urlParams = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
 
     // Check for error in the URL
     const error = urlParams.get('error');
@@ -19,20 +18,16 @@ export default function AuthSuccess() {
       return;
     }
 
-    // Check for access token
-    if (!hashParams.get('access_token')) {
-      console.error('No access token found in URL');
+    // Get code from URL
+    const code = urlParams.get('code');
+    if (!code) {
+      console.error('No authorization code found in URL');
       setRedirectFailed(true);
       return;
     }
 
-    // Construct deep link URL with all necessary parameters
-    const params = new URLSearchParams();
-    hashParams.forEach((value, key) => {
-      params.append(key, value);
-    });
-
-    const deepLinkUrl = `vocade://auth/callback?${params.toString()}`;
+    // Construct deep link URL with the code
+    const deepLinkUrl = `vocade://auth/callback?code=${code}`;
     console.log('Opening deep link:', deepLinkUrl);
 
     try {

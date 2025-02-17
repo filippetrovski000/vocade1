@@ -26,26 +26,26 @@ export const useDeepLinkAuth = () => {
           return;
         }
 
-        // Get tokens
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (!accessToken) {
-          throw new Error('No access token found in URL');
+        // Get authorization code
+        const code = params.get('code');
+        if (!code) {
+          throw new Error('No authorization code found in URL');
         }
 
-        console.log('Setting Supabase session...');
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || ''
-        });
+        // Exchange code for session
+        console.log('Exchanging code for session...');
+        const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
 
         if (sessionError) {
           console.error('Session error:', sessionError);
           throw sessionError;
         }
 
-        console.log('Session established:', sessionData.session?.user?.email);
+        if (!sessionData.session) {
+          throw new Error('No session returned from code exchange');
+        }
+
+        console.log('Session established:', sessionData.session.user.email);
         router.push('/dashboard');
       } catch (err) {
         console.error('Error handling deep link:', err);
