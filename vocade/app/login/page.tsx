@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import supabase from '@/lib/utils/supabase';
-import { useDeepLinkAuth } from '@/hooks/useDeepLinkAuth';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { invoke, listen, openUrl, cancel } from '@/lib/tauri';
 
 declare global {
   interface Window {
@@ -16,10 +16,67 @@ declare global {
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [port, setPort] = useState<number | null>(null);
   const router = useRouter();
-  
-  // Initialize deep link listener
-  useDeepLinkAuth();
+
+  // Listen for OAuth callback
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    const setupOAuthListener = async () => {
+      try {
+        unlisten = await listen('oauth_callback', async (event: { payload: string }) => {
+          try {
+            const url = new URL(event.payload);
+            const hashParams = new URLSearchParams(url.hash.substring(1));
+            
+            // Get access token from hash
+            const accessToken = hashParams.get('access_token');
+            if (!accessToken) {
+              throw new Error('No access token found in URL');
+            }
+
+            // Set the session with the token
+            console.log('Setting Supabase session...');
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: ''
+            });
+
+            if (error) throw error;
+            if (!data.session) throw new Error('No session established');
+
+            // Stop the OAuth server
+            if (port) {
+              try {
+                await cancel(port);
+                console.log('OAuth server stopped');
+              } catch (err) {
+                console.error('Error stopping OAuth server:', err);
+              }
+            }
+
+            console.log('Session established, navigating...');
+            router.push('/dashboard');
+          } catch (err) {
+            console.error('Error handling OAuth callback:', err);
+            setError('Failed to complete authentication. Please try again.');
+            setIsLoading(false);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up OAuth listener:', err);
+      }
+    };
+
+    setupOAuthListener();
+    return () => {
+      if (unlisten) unlisten();
+      if (port) {
+        cancel(port).catch(console.error);
+      }
+    };
+  }, [router, port]);
 
   // Check if already authenticated
   useEffect(() => {
@@ -43,13 +100,16 @@ export default function LoginPage() {
       setIsLoading(true);
       setError('');
 
+      // Start the OAuth server
+      const newPort = await invoke<number>('start_oauth_server');
+      console.log('OAuth server started on port:', newPort);
+      setPort(newPort);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           skipBrowserRedirect: true,
-          redirectTo: process.env.NODE_ENV === 'development'
-            ? process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL_DEV
-            : process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL,
+          redirectTo: `http://localhost:${newPort}`,
           queryParams: {
             access_type: 'online',
             prompt: 'consent',
@@ -71,22 +131,36 @@ export default function LoginPage() {
     } catch (err) {
       console.error('Login error:', err);
       setError('Failed to login with Google. Please try again.');
-    } finally {
       setIsLoading(false);
+      // Clean up if error occurs
+      if (port) {
+        try {
+          await cancel(port);
+          setPort(null);
+        } catch (cancelErr) {
+          console.error('Error canceling OAuth server:', cancelErr);
+        }
+      }
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-dark-1">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold">Vocade</h1>
+        <Image
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/vocade%20(1)-rDsBDORz5XtTDJo3dQO8kIODBBsN4O.png"
+          alt="Vocade Logo"
+          width={123}
+          height={25}
+          className="w-32 h-8"
+        />
       </div>
-      <p className="text-lg mb-8 text-muted-foreground">Focus starts here.</p>
-      {error && <p className="text-sm text-destructive mb-4">{error}</p>}
+      <p className="text-lg mb-8 text-gray-medium">Focus starts here.</p>
+      {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
       <Button 
         type="button" 
         variant="outline" 
-        className="flex items-center justify-center gap-2"
+        className="flex items-center justify-center gap-2 bg-gray-dark-2 text-gray-white hover:bg-gray-dark-3 border-gray-dark-4"
         onClick={handleGoogleLogin}
         disabled={isLoading}
       >
