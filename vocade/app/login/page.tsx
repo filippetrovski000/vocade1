@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import supabase from '@/lib/utils/supabase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { invoke, listen } from '@/lib/tauri';
 
 declare global {
   interface Window {
@@ -36,31 +35,37 @@ export default function LoginPage() {
     checkSession();
   }, [router]);
 
-  // Listen for OAuth callback
+  // Listen for OAuth callback in desktop app
   useEffect(() => {
-    const unsubscribe = listen('oauth-callback', async (event) => {
-      try {
-        const url = event.payload as string;
-        const params = new URLSearchParams(url.split('?')[1]);
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-        
-        if (access_token) {
-          await supabase.auth.setSession({
-            access_token,
-            refresh_token: refresh_token || '',
-          });
-          router.push('/dashboard');
-        }
-      } catch (err) {
-        console.error('Error handling OAuth callback:', err);
-        setError('Authentication failed. Please try again.');
-      }
-    });
+    if (!window.__TAURI__) return;
 
-    return () => {
-      unsubscribe.then(fn => fn());
+    const setupListener = async () => {
+      const unsubscribe = await listen<string>('oauth-callback', async (event) => {
+        try {
+          const url = event.payload;
+          const params = new URLSearchParams(url.split('?')[1]);
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          
+          if (access_token) {
+            await supabase.auth.setSession({
+              access_token,
+              refresh_token: refresh_token || '',
+            });
+            router.push('/dashboard');
+          }
+        } catch (err) {
+          console.error('Error handling OAuth callback:', err);
+          setError('Authentication failed. Please try again.');
+        }
+      });
+
+      return () => {
+        unsubscribe();
+      };
     };
+
+    setupListener();
   }, [router]);
 
   const handleGoogleLogin = async () => {
@@ -68,15 +73,24 @@ export default function LoginPage() {
       setIsLoading(true);
       setError('');
 
-      // Start the OAuth server
-      const port = await invoke<number>('start_oauth_server');
-      console.log('OAuth server started on port:', port);
+      let redirectUrl: string;
+
+      // Check if we're in the Tauri app
+      if (window.__TAURI__) {
+        // Start the OAuth server for desktop app
+        const port = await invoke<number>('start_oauth_server');
+        console.log('OAuth server started on port:', port);
+        redirectUrl = `http://localhost:${port}`;
+      } else {
+        // Use the deployed auth success page for web
+        redirectUrl = 'https://vocade.vercel.app/auth-success';
+      }
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          skipBrowserRedirect: true,
-          redirectTo: `http://localhost:${port}`,
+          skipBrowserRedirect: window.__TAURI__ ? true : false, // Only skip for desktop
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'online',
             prompt: 'consent',
@@ -88,8 +102,14 @@ export default function LoginPage() {
       if (error) throw error;
       if (!data?.url) throw new Error('No auth URL returned');
       
-      console.log('Opening auth URL in browser:', data.url);
-      await invoke('open_auth_url', { url: data.url });
+      if (window.__TAURI__) {
+        // Open in system browser for desktop app
+        console.log('Opening auth URL in browser:', data.url);
+        await invoke('open_auth_url', { url: data.url });
+      } else {
+        // Regular browser redirect for web
+        window.location.href = data.url;
+      }
     } catch (err) {
       console.error('Login error:', err);
       setError('Failed to login with Google. Please try again.');

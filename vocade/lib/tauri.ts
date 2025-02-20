@@ -8,7 +8,7 @@ let cancel: (port: number) => Promise<void>;
 if (typeof window !== 'undefined' && window.__TAURI__) {
   const importModules = async () => {
     const [{ invoke: tauriInvoke }, { listen: tauriListen }, { openUrl: tauriOpenUrl }, { cancel: tauriCancel }] = await Promise.all([
-      import('@tauri-apps/api/tauri'),
+      import('@tauri-apps/api/core'),
       import('@tauri-apps/api/event'),
       import('@tauri-apps/plugin-opener'),
       import('@fabianlars/tauri-plugin-oauth')
