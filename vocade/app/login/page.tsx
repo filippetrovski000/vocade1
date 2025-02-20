@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import supabase from '@/lib/utils/supabase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { invoke, listen, openUrl, cancel } from '@/lib/tauri';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 declare global {
   interface Window {
@@ -18,65 +19,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [port, setPort] = useState<number | null>(null);
   const router = useRouter();
-
-  // Listen for OAuth callback
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-
-    const setupOAuthListener = async () => {
-      try {
-        unlisten = await listen('oauth_callback', async (event: { payload: string }) => {
-          try {
-            const url = new URL(event.payload);
-            const hashParams = new URLSearchParams(url.hash.substring(1));
-            
-            // Get access token from hash
-            const accessToken = hashParams.get('access_token');
-            if (!accessToken) {
-              throw new Error('No access token found in URL');
-            }
-
-            // Set the session with the token
-            console.log('Setting Supabase session...');
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: ''
-            });
-
-            if (error) throw error;
-            if (!data.session) throw new Error('No session established');
-
-            // Stop the OAuth server
-            if (port) {
-              try {
-                await cancel(port);
-                console.log('OAuth server stopped');
-              } catch (err) {
-                console.error('Error stopping OAuth server:', err);
-              }
-            }
-
-            console.log('Session established, navigating...');
-            router.push('/dashboard');
-          } catch (err) {
-            console.error('Error handling OAuth callback:', err);
-            setError('Failed to complete authentication. Please try again.');
-            setIsLoading(false);
-          }
-        });
-      } catch (err) {
-        console.error('Error setting up OAuth listener:', err);
-      }
-    };
-
-    setupOAuthListener();
-    return () => {
-      if (unlisten) unlisten();
-      if (port) {
-        cancel(port).catch(console.error);
-      }
-    };
-  }, [router, port]);
 
   // Check if already authenticated
   useEffect(() => {
@@ -93,6 +35,33 @@ export default function LoginPage() {
     };
     
     checkSession();
+  }, [router]);
+
+  // Listen for OAuth callback
+  useEffect(() => {
+    const unsubscribe = listen('oauth-callback', async (event) => {
+      try {
+        const url = event.payload as string;
+        const params = new URLSearchParams(url.split('?')[1]);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        
+        if (access_token) {
+          await supabase.auth.setSession({
+            access_token,
+            refresh_token: refresh_token || '',
+          });
+          router.push('/dashboard');
+        }
+      } catch (err) {
+        console.error('Error handling OAuth callback:', err);
+        setError('Authentication failed. Please try again.');
+      }
+    });
+
+    return () => {
+      unsubscribe.then(fn => fn());
+    };
   }, [router]);
 
   const handleGoogleLogin = async () => {
@@ -122,25 +91,12 @@ export default function LoginPage() {
       if (!data?.url) throw new Error('No auth URL returned');
       
       console.log('Opening auth URL in browser:', data.url);
-      
-      if (process.env.NODE_ENV === 'development') {
-        window.location.href = data.url;
-      } else {
-        await openUrl(data.url);
-      }
+      await invoke('open_auth_url', { url: data.url });
     } catch (err) {
       console.error('Login error:', err);
       setError('Failed to login with Google. Please try again.');
+    } finally {
       setIsLoading(false);
-      // Clean up if error occurs
-      if (port) {
-        try {
-          await cancel(port);
-          setPort(null);
-        } catch (cancelErr) {
-          console.error('Error canceling OAuth server:', cancelErr);
-        }
-      }
     }
   };
 
