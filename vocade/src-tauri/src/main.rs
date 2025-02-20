@@ -15,8 +15,33 @@ async fn start_oauth_server(window: tauri::Window) -> Result<u16, String> {
 
     tauri_plugin_oauth::start_with_config(config, move |url| {
         println!("Received OAuth URL: {}", url);
-        // Emit the URL to the frontend
-        let _ = window.emit("oauth-callback", url);
+        // Extract the hash fragment from the URL
+        if let Some(hash_start) = url.find('#') {
+            let hash = &url[hash_start..];
+            // Parse the hash parameters
+            let hash_params: Vec<&str> = hash[1..].split('&').collect();
+            let mut access_token = None;
+            let mut refresh_token = None;
+
+            for param in hash_params {
+                let parts: Vec<&str> = param.split('=').collect();
+                if parts.len() == 2 {
+                    match parts[0] {
+                        "access_token" => access_token = Some(parts[1].to_string()),
+                        "refresh_token" => refresh_token = Some(parts[1].to_string()),
+                        _ => {}
+                    }
+                }
+            }
+
+            // Emit the tokens to the frontend
+            if let Some(token) = access_token {
+                let _ = window.emit("oauth-callback", format!("?access_token={}&refresh_token={}", 
+                    token, 
+                    refresh_token.unwrap_or_default()
+                ));
+            }
+        }
     })
     .map_err(|err| err.to_string())
 }
