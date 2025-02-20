@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import supabase from '@/lib/utils/supabase';
-import { useDeepLinkAuth } from '@/hooks/useDeepLinkAuth';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { useRouter } from 'next/navigation';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 declare global {
   interface Window {
@@ -17,9 +17,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  
-  // Initialize deep link listener
-  useDeepLinkAuth();
 
   // Check if already authenticated
   useEffect(() => {
@@ -38,18 +35,51 @@ export default function LoginPage() {
     checkSession();
   }, [router]);
 
+  // Listen for OAuth callback
+  useEffect(() => {
+    const unsubscribe = listen('oauth-callback', async (event) => {
+      try {
+        const url = event.payload as string;
+        const params = new URLSearchParams(url.split('?')[1]);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        
+        if (access_token) {
+          await supabase.auth.setSession({
+            access_token,
+            refresh_token: refresh_token || '',
+          });
+          router.push('/dashboard');
+        }
+      } catch (err) {
+        console.error('Error handling OAuth callback:', err);
+        setError('Authentication failed. Please try again.');
+      }
+    });
+
+    return () => {
+      unsubscribe.then(fn => fn());
+    };
+  }, [router]);
+
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       setError('');
 
+      // Start the OAuth server
+      const port = await invoke<number>('start_oauth_server');
+      console.log('OAuth server started on port:', port);
+
+      const redirectUrl = process.env.NODE_ENV === 'development'
+        ? `http://localhost:${port}`
+        : `http://localhost:${port}`;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           skipBrowserRedirect: true,
-          redirectTo: process.env.NODE_ENV === 'development'
-            ? process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL_DEV
-            : process.env.NEXT_PUBLIC_AUTH_REDIRECT_URL,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -61,12 +91,7 @@ export default function LoginPage() {
       if (!data?.url) throw new Error('No auth URL returned');
       
       console.log('Opening auth URL in browser:', data.url);
-      
-      if (process.env.NODE_ENV === 'development') {
-        window.location.href = data.url;
-      } else {
-        await openUrl(data.url);
-      }
+      await invoke('open_auth_url', { url: data.url });
     } catch (err) {
       console.error('Login error:', err);
       setError('Failed to login with Google. Please try again.');
