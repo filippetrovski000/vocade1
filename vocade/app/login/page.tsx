@@ -17,7 +17,6 @@ declare global {
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [port, setPort] = useState<number | null>(null);
   const router = useRouter();
 
   // Check if already authenticated
@@ -70,15 +69,14 @@ export default function LoginPage() {
       setError('');
 
       // Start the OAuth server
-      const newPort = await invoke<number>('start_oauth_server');
-      console.log('OAuth server started on port:', newPort);
-      setPort(newPort);
+      const port = await invoke<number>('start_oauth_server');
+      console.log('OAuth server started on port:', port);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           skipBrowserRedirect: true,
-          redirectTo: `http://localhost:${newPort}`,
+          redirectTo: `http://localhost:${port}`,
           queryParams: {
             access_type: 'online',
             prompt: 'consent',

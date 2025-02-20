@@ -6,15 +6,21 @@ let cancel: (port: number) => Promise<void>;
 
 // Initialize Tauri APIs only in production or when Tauri is available
 if (typeof window !== 'undefined' && window.__TAURI__) {
-  const tauriApis = require('@tauri-apps/api');
-  const tauriEvents = require('@tauri-apps/api/event');
-  const tauriOpener = require('@tauri-apps/plugin-opener');
-  const tauriOauth = require('@fabianlars/tauri-plugin-oauth');
+  const importModules = async () => {
+    const [{ invoke: tauriInvoke }, { listen: tauriListen }, { openUrl: tauriOpenUrl }, { cancel: tauriCancel }] = await Promise.all([
+      import('@tauri-apps/api/tauri'),
+      import('@tauri-apps/api/event'),
+      import('@tauri-apps/plugin-opener'),
+      import('@fabianlars/tauri-plugin-oauth')
+    ]);
 
-  invoke = tauriApis.invoke;
-  listen = tauriEvents.listen;
-  openUrl = tauriOpener.openUrl;
-  cancel = tauriOauth.cancel;
+    invoke = tauriInvoke;
+    listen = tauriListen;
+    openUrl = tauriOpenUrl;
+    cancel = tauriCancel;
+  };
+
+  importModules().catch(console.error);
 } else {
   // Mock implementations for development
   invoke = async () => {

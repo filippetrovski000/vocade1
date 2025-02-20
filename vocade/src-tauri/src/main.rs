@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tauri::{command, Manager, Emitter};
-use tauri_plugin_oauth::{start, OauthConfig};
+use tauri_plugin_oauth::OauthConfig;
 use tauri_plugin_opener::OpenerExt;
 use std::env;
 
@@ -18,7 +18,6 @@ async fn start_oauth_server(window: tauri::Window) -> Result<u16, String> {
         // Emit the URL to the frontend
         let _ = window.emit("oauth-callback", url);
     })
-    .await
     .map_err(|err| err.to_string())
 }
 
