@@ -41,16 +41,17 @@ export default function AuthSuccess() {
 
         setStatus('success');
         
-        if (window.__TAURI__) {
-          // In desktop app, just close the window after success
+        // Check if this is a desktop app auth or web auth
+        const isDesktopAuth = new URLSearchParams(window.location.search).get('source') === 'desktop';
+        
+        if (isDesktopAuth) {
+          // In desktop app flow, show success message and close window
           setTimeout(() => {
             window.close();
           }, 2000);
         } else {
-          // In web app, redirect to dashboard after success
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 2000);
+          // In web flow, redirect to settings immediately
+          router.push('/settings');
         }
       } catch (err) {
         console.error('Auth success page error:', err);
@@ -61,6 +62,19 @@ export default function AuthSuccess() {
 
     handleAuth();
   }, [router]);
+
+  // Only show the success/error UI for desktop auth
+  const isDesktopAuth = new URLSearchParams(window.location.search).get('source') === 'desktop';
+  if (!isDesktopAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-dark-1">
+        <div className="flex flex-col items-center justify-center gap-4 text-center text-gray-white p-6">
+          <h1 className="text-2xl font-semibold">Redirecting...</h1>
+          <p className="text-gray-medium">Please wait while we redirect you to your account.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-dark-1">
@@ -75,16 +89,8 @@ export default function AuthSuccess() {
         {status === 'success' && (
           <>
             <h1 className="text-2xl font-semibold">Authentication Successful!</h1>
-            <p className="text-gray-medium">
-              {window.__TAURI__ 
-                ? 'You can return to the app now.'
-                : 'Redirecting you to the dashboard...'}
-            </p>
-            <p className="mt-4 text-sm text-gray-500">
-              {window.__TAURI__
-                ? 'This window will close automatically.'
-                : 'Please wait while we redirect you.'}
-            </p>
+            <p className="text-gray-medium">You can return to the app now.</p>
+            <p className="mt-4 text-sm text-gray-500">This window will close automatically.</p>
           </>
         )}
 
@@ -93,10 +99,10 @@ export default function AuthSuccess() {
             <h1 className="text-2xl font-semibold text-red-500">Authentication Error</h1>
             <p className="text-gray-medium">{error}</p>
             <button 
-              onClick={() => window.__TAURI__ ? window.close() : router.push('/login')}
+              onClick={() => window.close()}
               className="mt-4 px-4 py-2 bg-gray-dark-2 hover:bg-gray-dark-3 rounded"
             >
-              {window.__TAURI__ ? 'Close Window' : 'Back to Login'}
+              Close Window
             </button>
           </>
         )}

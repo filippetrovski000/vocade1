@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import supabase from '@/lib/utils/supabase';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { invoke, listen } from '@/lib/tauri';
+import { invoke } from '@/lib/tauri';
 
 declare global {
   interface Window {
@@ -35,39 +34,6 @@ export default function LoginPage() {
     checkSession();
   }, [router]);
 
-  // Listen for OAuth callback in desktop app
-  useEffect(() => {
-    if (!window.__TAURI__) return;
-
-    const setupListener = async () => {
-      const unsubscribe = await listen<string>('oauth-callback', async (event) => {
-        try {
-          const url = event.payload;
-          const params = new URLSearchParams(url.split('?')[1]);
-          const access_token = params.get('access_token');
-          const refresh_token = params.get('refresh_token');
-          
-          if (access_token) {
-            await supabase.auth.setSession({
-              access_token,
-              refresh_token: refresh_token || '',
-            });
-            router.push('/dashboard');
-          }
-        } catch (err) {
-          console.error('Error handling OAuth callback:', err);
-          setError('Authentication failed. Please try again.');
-        }
-      });
-
-      return () => {
-        unsubscribe();
-      };
-    };
-
-    setupListener();
-  }, [router]);
-
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
@@ -90,7 +56,9 @@ export default function LoginPage() {
         provider: 'google',
         options: {
           skipBrowserRedirect: window.__TAURI__ ? true : false, // Only skip for desktop
-          redirectTo: redirectUrl,
+          redirectTo: window.__TAURI__ ? 
+            redirectUrl : 
+            'https://vocade.vercel.app/auth-success?source=web', // Add source parameter for web
           queryParams: {
             access_type: 'online',
             prompt: 'consent',
@@ -105,7 +73,10 @@ export default function LoginPage() {
       if (window.__TAURI__) {
         // Open in system browser for desktop app
         console.log('Opening auth URL in browser:', data.url);
-        await invoke('open_auth_url', { url: data.url });
+        // Add source=desktop parameter
+        const desktopUrl = new URL(data.url);
+        desktopUrl.searchParams.set('source', 'desktop');
+        await invoke('open_auth_url', { url: desktopUrl.toString() });
       } else {
         // Regular browser redirect for web
         window.location.href = data.url;
@@ -121,20 +92,28 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-dark-1">
       <div className="mb-8">
-        <Image
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/vocade%20(1)-rDsBDORz5XtTDJo3dQO8kIODBBsN4O.png"
-          alt="Vocade Logo"
-          width={123}
-          height={25}
-          className="w-32 h-8"
-        />
+        <div className="w-[120px] h-[120px]">
+          <svg viewBox="0 0 200 200" className="w-full h-full">
+            <path
+              d="M100 0 L200 100 L100 200 L0 100 Z"
+              fill="url(#gradient)"
+            />
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{ stopColor: '#FFFFFF', stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: '#666666', stopOpacity: 1 }} />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
       </div>
+      <h1 className="text-2xl font-bold text-gray-white mb-2">Vocade</h1>
       <p className="text-lg mb-8 text-gray-medium">Focus starts here.</p>
       {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
       <Button 
         type="button" 
         variant="outline" 
-        className="flex items-center justify-center gap-2 bg-gray-dark-2 text-gray-white hover:bg-gray-dark-3 border-gray-dark-4"
+        className="flex items-center justify-center gap-2 bg-gray-dark-2 text-gray-white hover:bg-gray-dark-3 border-gray-dark-4 px-6 py-3"
         onClick={handleGoogleLogin}
         disabled={isLoading}
       >
