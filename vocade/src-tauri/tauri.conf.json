@@ -23,7 +23,7 @@
     "security": {
       "csp": {
         "default-src": ["'self'"],
-        "img-src": ["'self'", "https://*", "data:"],
+        "img-src": ["'self'", "https://*", "data:", "/public/*"],
         "style-src": ["'self'", "'unsafe-inline'"],
         "connect-src": ["'self'", "https://*"],
         "script-src": ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
