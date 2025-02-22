@@ -24,7 +24,7 @@ export default function LoginPage() {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('Current session:', session ? 'Found' : 'None');
         if (session) {
-          router.push('/dashboard');
+          router.push('/settings');
         }
       } catch (err) {
         console.error('Error checking session:', err);
@@ -46,23 +46,19 @@ export default function LoginPage() {
         // Start the OAuth server for desktop app
         const port = await invoke<number>('start_oauth_server');
         console.log('OAuth server started on port:', port);
-        redirectUrl = `http://localhost:${port}`;
+        redirectUrl = `http://localhost:${port}?source=desktop`;
       } else {
         // Use the deployed auth success page for web
-        redirectUrl = 'https://vocade.vercel.app/auth-success';
+        redirectUrl = 'https://vocade.vercel.app/auth/callback?source=web';
       }
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          skipBrowserRedirect: window.__TAURI__ ? true : false, // Only skip for desktop
-          redirectTo: window.__TAURI__ ? 
-            redirectUrl : 
-            'https://vocade.vercel.app/auth-success?source=web', // Add source parameter for web
+          redirectTo: redirectUrl,
           queryParams: {
-            access_type: 'online',
-            prompt: 'consent',
-            response_type: 'token'
+            access_type: 'offline',
+            prompt: 'consent'
           },
         }
       });
@@ -73,10 +69,7 @@ export default function LoginPage() {
       if (window.__TAURI__) {
         // Open in system browser for desktop app
         console.log('Opening auth URL in browser:', data.url);
-        // Add source=desktop parameter
-        const desktopUrl = new URL(data.url);
-        desktopUrl.searchParams.set('source', 'desktop');
-        await invoke('open_auth_url', { url: desktopUrl.toString() });
+        await invoke('open_auth_url', { url: data.url });
       } else {
         // Regular browser redirect for web
         window.location.href = data.url;
