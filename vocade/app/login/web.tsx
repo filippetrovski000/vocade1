@@ -1,39 +1,25 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import supabase from '@/lib/utils/supabase';
-import { useRouter } from 'next/navigation';
-import { invoke } from '@tauri-apps/api/tauri';
-import { useDeepLinkAuth } from '@/hooks/useDeepLinkAuth';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import Image from 'next/image';
-import Link from 'next/link';
 import { Github } from 'lucide-react';
+import supabase from '@/lib/utils/supabase';
 
-declare global {
-  interface Window {
-    __TAURI__?: boolean;
-  }
-}
-
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
+export default function WebLoginPage() {
+  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
-  
-  // Initialize deep link listener
-  useDeepLinkAuth();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setIsLoading(true);
-      setError("");
+      setError('');
 
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email,
@@ -46,10 +32,10 @@ export default function LoginPage() {
 
       if (signInError) throw signInError;
 
-      alert("Check your email for the login link!");
+      alert('Check your email for the login link!');
     } catch (err) {
-      console.error("Sign in error:", err);
-      setError("Failed to send login link. Please try again.");
+      console.error('Sign in error:', err);
+      setError('Failed to send login link. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -65,8 +51,8 @@ export default function LoginPage() {
         options: {
           skipBrowserRedirect: true,
           redirectTo: process.env.NODE_ENV === 'development'
-            ? 'http://localhost:3000/auth-success'
-            : 'https://vocade.vercel.app/auth-success',
+            ? 'http://localhost:3000/auth/callback?source=web'
+            : 'https://vocade.vercel.app/auth/callback?source=web',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
@@ -75,15 +61,7 @@ export default function LoginPage() {
       });
 
       if (!data?.url) throw new Error('No auth URL returned');
-      
-      // Handle URL opening based on environment
-      if (typeof window !== 'undefined' && window.__TAURI__) {
-        // In Tauri app, use the system browser
-        await openUrl(data.url);
-      } else {
-        // In web browser
-        window.location.href = data.url;
-      }
+      window.location.href = data.url;
     } catch (err) {
       setError('Failed to login with Google. Please try again.');
       console.error(err);
@@ -95,15 +73,15 @@ export default function LoginPage() {
   const handleGitHubSignIn = async () => {
     try {
       setIsLoading(true);
-      setError("");
+      setError('');
 
       const { data } = await supabase.auth.signInWithOAuth({
-        provider: "github",
+        provider: 'github',
         options: {
           skipBrowserRedirect: true,
           redirectTo: process.env.NODE_ENV === 'development'
-            ? 'http://localhost:3000/auth-success'
-            : 'https://vocade.vercel.app/auth-success',
+            ? 'http://localhost:3000/auth/callback?source=web'
+            : 'https://vocade.vercel.app/auth/callback?source=web',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
@@ -112,15 +90,7 @@ export default function LoginPage() {
       });
 
       if (!data?.url) throw new Error('No auth URL returned');
-      
-      // Handle URL opening based on environment
-      if (typeof window !== 'undefined' && window.__TAURI__) {
-        // In Tauri app, use the system browser
-        await openUrl(data.url);
-      } else {
-        // In web browser
-        window.location.href = data.url;
-      }
+      window.location.href = data.url;
     } catch (err) {
       setError('Failed to login with GitHub. Please try again.');
       console.error(err);
@@ -133,22 +103,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-dark-1 p-4">
       <div className="w-full max-w-[400px] space-y-8">
         <div className="flex flex-col items-center space-y-2">
-          <div className="w-[120px] h-[120px]">
-            <svg viewBox="0 0 200 200" className="w-full h-full">
-              <path
-                d="M100 0 L200 100 L100 200 L0 100 Z"
-                fill="url(#gradient)"
-              />
-              <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: '#FFFFFF', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: '#666666', stopOpacity: 1 }} />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-white">Vocade</h1>
-          <p className="text-base text-gray-medium">Code with your voice.</p>
+          <Image
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/vocade%20(1)-rDsBDORz5XtTDJo3dQO8kIODBBsN4O.png"
+            alt="Vocade Logo"
+            width={123}
+            height={25}
+            className="w-32 h-8"
+          />
+          <h1 className="text-2xl font-semibold text-gray-white">Sign in</h1>
         </div>
 
         <div className="space-y-6">
@@ -172,7 +134,7 @@ export default function LoginPage() {
               className="w-full bg-gray-white text-gray-black hover:bg-gray-light"
               disabled={isLoading}
             >
-              {isLoading ? "Loading..." : "Continue"}
+              {isLoading ? 'Loading...' : 'Continue'}
             </Button>
           </form>
 
@@ -229,7 +191,7 @@ export default function LoginPage() {
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
           <p className="text-sm text-gray-medium text-center">
-            Don&apos;t have an account?{" "}
+            Don&apos;t have an account?{' '}
             <Link href="/auth/sign-up" className="text-gray-white hover:underline">
               Sign up
             </Link>
@@ -241,8 +203,8 @@ export default function LoginPage() {
         <p className="text-sm text-gray-medium">
           <Link href="/terms" className="hover:text-gray-white">
             Terms of Service
-          </Link>{" "}
-          and{" "}
+          </Link>{' '}
+          and{' '}
           <Link href="/privacy" className="hover:text-gray-white">
             Privacy Policy
           </Link>

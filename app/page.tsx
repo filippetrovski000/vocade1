@@ -133,22 +133,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-dark-1 p-4">
       <div className="w-full max-w-[400px] space-y-8">
         <div className="flex flex-col items-center space-y-2">
-          <div className="w-[120px] h-[120px]">
-            <svg viewBox="0 0 200 200" className="w-full h-full">
-              <path
-                d="M100 0 L200 100 L100 200 L0 100 Z"
-                fill="url(#gradient)"
-              />
-              <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: '#FFFFFF', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: '#666666', stopOpacity: 1 }} />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-white">Vocade</h1>
-          <p className="text-base text-gray-medium">Code with your voice.</p>
+          <Image
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/vocade%20(1)-rDsBDORz5XtTDJo3dQO8kIODBBsN4O.png"
+            alt="Vocade Logo"
+            width={123}
+            height={25}
+            className="w-32 h-8"
+          />
+          <h1 className="text-2xl font-semibold text-gray-white">Sign in</h1>
         </div>
 
         <div className="space-y-6">
