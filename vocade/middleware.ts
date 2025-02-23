@@ -1,36 +1,37 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+export function middleware(request: NextRequest) {
+  const userAgent = request.headers.get('user-agent') || '';
+  const isTauri = userAgent.includes('Tauri');
+  const isWebLoginPage = request.nextUrl.pathname === '/login/web';
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // If user is not logged in and trying to access any page other than login or auth-success
-  if (!session && 
-      !req.nextUrl.pathname.startsWith('/login') && 
-      !req.nextUrl.pathname.startsWith('/auth-success')) {
-    return NextResponse.redirect(new URL('/login', req.url));
+  // If it's a web browser (not Tauri)
+  if (!isTauri) {
+    // If not on web login page, redirect to web login
+    if (!isWebLoginPage) {
+      return NextResponse.redirect(new URL('/login/web', request.url));
+    }
+  } else {
+    // If it's Tauri and trying to access web login, redirect to desktop login
+    if (isWebLoginPage) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
   }
 
-  // If user is logged in and trying to access login page, redirect to dashboard
-  if (session && req.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
-  }
-
-  // If user is logged in and accessing root, redirect to dashboard
-  if (session && req.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
-  }
-
-  return res;
+  return NextResponse.next();
 }
 
-// Configure which routes to run middleware on
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$).*)', '/']
+  matcher: [
+    /*
+     * Match all request paths except for:
+     * 1. /api routes
+     * 2. /_next (Next.js internals)
+     * 3. /_static (inside /public)
+     * 4. /_vercel (Vercel internals)
+     * 5. all root files inside /public (e.g. /favicon.ico)
+     */
+    '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
+  ],
 }; 
